@@ -48,7 +48,7 @@ except ImportError:
 
 class ALwiki(callbacks.Plugin):
     """Get information from the Arch Linux Wiki"""
-    pass
+    threaded = True
 
     def alw(self, irc, msg, args, search):
         """Search the arch linux wiki with alw <search>"""
