@@ -33,7 +33,6 @@ from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
-import json
 from urllib.parse import quote_plus
 from requests import get
 from bs4 import BeautifulSoup
@@ -54,7 +53,7 @@ class ALwiki(callbacks.Plugin):
         """Search the arch linux wiki with alw <search>"""
         try:
             query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
-            results = json.loads(get(query).text)
+            results = get(query).json()
             if not results[3]:
                 irc.reply('No results found.')
                 return
