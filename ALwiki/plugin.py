@@ -69,6 +69,7 @@ class ALwiki(callbacks.Plugin):
             else:
                 data = link
         except:
+            irc.error('Error occured while executing search.')
             return
         irc.reply(data)
     alw = wrap(alw, ['text'])
