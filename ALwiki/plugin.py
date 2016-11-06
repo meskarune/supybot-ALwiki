@@ -55,6 +55,10 @@ class ALwiki(callbacks.Plugin):
         try:
             query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
             results = json.loads(get(query).text)
+            if not results[3]:
+                irc.reply('No results found.')
+                return
+
             description = results[1][0]
             link = results[3][0]
             if description:
