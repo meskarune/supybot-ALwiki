@@ -28,15 +28,12 @@
 
 ###
 
-import supybot.utils as utils
 from supybot.commands import *
-import supybot.plugins as plugins
-import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 import json
 from urllib.parse import quote_plus
 from requests import get
-from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
 
 try:
     from supybot.i18n import PluginInternationalization
@@ -46,26 +43,61 @@ except ImportError:
     # without the i18n module
     _ = lambda x: x
 
+
 class ALwiki(callbacks.Plugin):
     """Get information from the Arch Linux Wiki"""
     threaded = True
 
-    def alw(self, irc, msg, args, search):
-        """Search the arch linux wiki with alw <search>"""
+    def __opensearch(self, search):
+        """Internal function to search using opensearch"""
+        data = ""
         try:
-            query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(quote_plus(search))
+            query = "https://wiki.archlinux.org/api.php?action=opensearch&search={0}&format=json".format(
+                quote_plus(search))
             results = json.loads(get(query).text)
             description = results[1][0]
             link = results[3][0]
             if description:
                 if len(description) > 250:
-                    data = "{0}… - {1}".format(description[0:250],link)
+                    data = "{0}… - {1}".format(description[0:250], link)
                 else:
-                    data = "{0} - {1}".format(description,link)
+                    data = "{0} - {1}".format(description, link)
             else:
                 data = link
-        except:
-            return
+        except RequestException:
+            return False
+
+        return data
+
+    def __querysearch(self, search):
+        """Internal function to search using first query search to get the title of the page, then using opensearch"""
+        data = ""
+        title = ""
+        try:
+            query = "https://wiki.archlinux.org/api.php?action=query&list=search&srsearch={0}&format=json".format(
+                quote_plus(search))
+            results = json.loads(get(query).text)
+            if "query" in results:
+                if "searchinfo" in results:
+                    if results["query"]["searchinfo"]["totalhits"] > 0:
+                        title = results['query']['search'][0]['title']
+            if title:
+                data = self.__opensearch(title)
+        except RequestException:
+            return False
+
+        return data
+
+    def alw(self, irc, msg, args, search):
+        """Search the arch linux wiki with alw <search>"""
+
+        # Try first with opensearch
+        data = self.__opensearch(search)
+
+        # Then with query search
+        if not data:
+            data = self.__querysearch(search)
+
         irc.reply(data)
     alw = wrap(alw, ['text'])
 
